@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>قائمة المطعم الرقمية</title>
+    <style>
+        /* Reset & Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            background: #f8f5f0;
+            color: #1e1e1e;
+            padding: 0 0 80px 0;
+            min-width: 320px;
+            overflow-x: hidden;
+        }
+
+        /* Status Bar */
+        #statusBar {
+            background: #d4a843;
+            color: #1e1e1e;
+            text-align: center;
+            padding: 8px 10px;
+            font-size: 15px;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            letter-spacing: 0.3px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 4px 10px;
+        }
+        #statusBar .badge {
+            background: rgba(0, 0, 0, 0.15);
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+        }
+        #statusBar .hint {
+            font-size: 13px;
+            font-weight: 400;
+            opacity: 0.85;
+        }
+
+        /* Search */
+        #searchWrap {
+            padding: 10px 14px 6px 14px;
+            position: sticky;
+            top: 40px;
+            z-index: 99;
+            background: #f8f5f0;
+        }
+        #searchInput {
+            width: 100%;
+            padding: 10px 16px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 30px;
+            outline: none;
+            background: #fff;
+            transition: border 0.2s;
+            font-family: inherit;
+        }
+        #searchInput:focus {
+            border-color: #d4a843;
+        }
+
+        /* Category Tabs */
+        #catNav {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            gap: 6px;
+            padding: 6px 14px 12px 14px;
+            position: sticky;
+            top: 90px;
+            z-index: 98;
+            background: #f8f5f0;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        #catNav::-webkit-scrollbar {
+            display: none;
+        }
+        .catBtn {
+            flex: 0 0 auto;
+            padding: 6px 16px;
+            background: #e8e2d8;
+            border: none;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #3d3d3d;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        .catBtn.active {
+            background: #d4a843;
+            color: #1e1e1e;
+            font-weight: 600;
+        }
+
+        /* Menu Sections */
+        .section {
+            padding: 6px 14px 4px 14px;
+        }
+        .sectionTitle {
+            font-size: 20px;
+            font-weight: 700;
+            padding: 16px 0 8px 0;
+            border-bottom: 3px solid #d4a843;
+            margin-bottom: 12px;
+            color: #2c2c2c;
+            letter-spacing: 0.5px;
+        }
+
+        /* Item Card */
+        .item {
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+            border-right: 4px solid #d4a843;
+            transition: 0.15s;
+            position: relative;
+        }
+        .item.unavailable {
+            opacity: 0.55;
+            border-right-color: #aaa;
+        }
+        .item .topRow {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .item .name {
+            font-size: 17px;
+            font-weight: 600;
+            color: #1e1e1e;
+            word-break: break-word;
+        }
+        .item .price {
+            font-size: 16px;
+            font-weight: 700;
+            color: #d4a843;
+            white-space: nowrap;
+        }
+        .item .desc {
+            font-size: 14px;
+            color: #666;
+            margin: 4px 0 8px 0;
+            word-break: break-word;
+            line-height: 1.4;
+        }
+        .item .bottomRow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        .item .statusLabel {
+            font-size: 13px;
+            color: #999;
+            font-weight: 500;
+        }
+        .item .statusLabel.unavailable {
+            color: #c0392b;
+        }
+
+        /* Buttons */
+        .btn {
+            border: none;
+            border-radius: 30px;
+            padding: 6px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.15s;
+            font-family: inherit;
+            touch-action: manipulation;
+            min-height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-add {
+            background: #d4a843;
+            color: #1e1e1e;
+        }
+        .btn-add:active {
+            transform: scale(0.96);
+        }
+        .btn-add:disabled {
+            opacity: 0.4;
+            cursor: default;
+            transform: none;
+        }
+        .btn-qty {
+            background: #eee;
+            color: #1e1e1e;
+            min-width: 36px;
+            padding: 6px 10px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .btn-qty:active {
+            background: #ddd;
+        }
+        .qtyGroup {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .qtyGroup .qtyNum {
+            min-width: 28px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        /* Cart Bottom Bar */
+        #cartBar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #1e1e1e;
+            color: #fff;
+            display: none;
+            padding: 12px 18px;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 200;
+            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.25);
+            cursor: pointer;
+            min-height: 60px;
+            border-top: 3px solid #d4a843;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        #cartBar.visible {
+            display: flex;
+        }
+        #cartBar .left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        #cartBar .cartCount {
+            background: #d4a843;
+            color: #1e1e1e;
+            border-radius: 30px;
+            padding: 2px 14px;
+            font-weight: 700;
+            font-size: 15px;
+        }
+        #cartBar .cartTotal {
+            font-weight: 700;
+            font-size: 18px;
+            color: #d4a843;
+        }
+        #cartBar .label {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        /* Cart Modal */
+        #cartModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 300;
+            align-items: flex-end;
+            justify-content: center;
+            animation: fadeUp 0.25s ease;
+        }
+        #cartModal.open {
+            display: flex;
+        }
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        #cartModal .modalContent {
+            background: #fff;
+            width: 100%;
+            max-width: 500px;
+            max-height: 85vh;
+            border-radius: 24px 24px 0 0;
+            padding: 20px 18px 30px 18px;
+            overflow-y: auto;
+            box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
+        }
+        #cartModal .modalHeader {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 14px;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        #cartModal .modalHeader .closeBtn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #888;
+            padding: 0 6px;
+        }
+        .cartItem {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0ede8;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .cartItem .ciName {
+            font-weight: 500;
+            flex: 1;
+            min-width: 100px;
+            word-break: break-word;
+        }
+        .cartItem .ciPrice {
+            font-weight: 600;
+            color: #d4a843;
+            white-space: nowrap;
+        }
+        .cartItem .ciQty {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .cartItem .ciQty .btn-sm {
+            background: #eee;
+            border: none;
+            border-radius: 30px;
+            width: 32px;
+            height: 32px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .cartItem .ciQty .btn-sm:active {
+            background: #ddd;
+        }
+        .cartItem .ciQty .qtyNum {
+            min-width: 24px;
+            text-align: center;
+            font-weight: 600;
+        }
+        .cartItem .ciRemove {
+            background: none;
+            border: none;
+            color: #c0392b;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+
+        /* Delivery fields */
+        #deliveryFields {
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 2px solid #eee;
+        }
+        #deliveryFields .fieldGroup {
+            margin-bottom: 14px;
+        }
+        #deliveryFields label {
+            display: block;
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: #3d3d3d;
+        }
+        #deliveryFields input {
+            width: 100%;
+            padding: 10px 14px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            outline: none;
+            font-family: inherit;
+            background: #fafafa;
+        }
+        #deliveryFields input:focus {
+            border-color: #d4a843;
+        }
+        #deliveryFields .errorMsg {
+            color: #c0392b;
+            font-size: 13px;
+            margin-top: 4px;
+            display: none;
+        }
+        #deliveryFields .errorMsg.visible {
+            display: block;
+        }
+
+        /* Send button in modal */
+        #sendBtn {
+            width: 100%;
+            padding: 14px;
+            background: #d4a843;
+            border: none;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e1e1e;
+            cursor: pointer;
+            margin-top: 18px;
+            transition: 0.15s;
+            font-family: inherit;
+        }
+        #sendBtn:active {
+            transform: scale(0.97);
+        }
+        #sendBtn:disabled {
+            opacity: 0.4;
+            cursor: default;
+            transform: none;
+        }
+        #sendBtn.browseMode {
+            background: #ccc;
+            cursor: default;
+        }
+
+        .emptyCartMsg {
+            text-align: center;
+            padding: 24px 0;
+            color: #999;
+            font-size: 16px;
+        }
+
+        /* Utility */
+        .hidden {
+            display: none !important;
+        }
+        .text-muted {
+            color: #999;
+        }
+
+        /* Scrollable cat nav on small */
+        @media (max-width: 400px) {
+            .catBtn {
+                font-size: 13px;
+                padding: 5px 12px;
+            }
+            .item .name {
+                font-size: 16px;
+            }
+            .item .price {
+                font-size: 15px;
+            }
+            #statusBar {
+                font-size: 14px;
+                padding: 6px 8px;
+            }
+            #cartBar .cartTotal {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== STATUS BAR ===== -->
+    <div id="statusBar">جاري التحميل...</div>
+
+    <!-- ===== SEARCH ===== -->
+    <div id="searchWrap">
+        <input id="searchInput" type="text" placeholder="🔍 ابحث عن صنف..." />
+    </div>
+
+    <!-- ===== CATEGORY NAV ===== -->
+    <div id="catNav"></div>
+
+    <!-- ===== MENU SECTIONS ===== -->
+    <div id="menuContainer"></div>
+
+    <!-- ===== CART BOTTOM BAR ===== -->
+    <div id="cartBar">
+        <div class="left">
+            <span class="label">🛒 السلة</span>
+            <span class="cartCount" id="cartCount">0</span>
+            <span class="label">أصناف</span>
+        </div>
+        <div class="cartTotal" id="cartTotal">0 د.ع</div>
+    </div>
+
+    <!-- ===== CART MODAL ===== -->
+    <div id="cartModal">
+        <div class="modalContent">
+            <div class="modalHeader">
+                <span>🧾 ملخص الطلب</span>
+                <button class="closeBtn" id="closeModalBtn">&times;</button>
+            </div>
+            <div id="cartItemsList"></div>
+            <div id="deliveryFields">
+                <div class="fieldGroup">
+                    <label>الاسم الكامل</label>
+                    <input type="text" id="delName" placeholder="أدخل اسمك" />
+                    <div class="errorMsg" id="delNameError">الاسم مطلوب</div>
+                </div>
+                <div class="fieldGroup">
+                    <label>العنوان</label>
+                    <input type="text" id="delAddress" placeholder="أدخل عنوان التوصيل" />
+                    <div class="errorMsg" id="delAddressError">العنوان مطلوب</div>
+                </div>
+                <div class="fieldGroup">
+                    <label>رقم الهاتف</label>
+                    <input type="tel" id="delPhone" placeholder="مثال: 07701234567" />
+                    <div class="errorMsg" id="delPhoneError">رقم الهاتف مطلوب</div>
+                </div>
+            </div>
+            <button id="sendBtn">📤 إرسال الطلب عبر واتساب</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // CONSTANTS – edit these two only
+        // PHONE: International format without leading zero, no spaces, no plus.
+        // Example: for Iraq 7701234567 → 9647701234567
+        // ============================================================
+        const PHONE = "9647818282189"; // <-- change to your number
+
+        // MAX_TABLES: maximum valid table number. Must be a positive integer.
+        const MAX_TABLES = 20;
+
+        // SHOP_NAME: used in the WhatsApp message and status bar.
+        const SHOP_NAME = "مطعم النخيل";
+
+        // ============================================================
+        // MENU DATA – editable by non-programmers
+        // Each item: { name, description, price, available (true/false) }
+        // Price in Iraqi Dinar (IQD)
+        // ============================================================
+        const MENU_DATA = [{
+            category: "مقبلات",
+            items: [
+                { name: "حمص", description: "حمص طازج مع طحينة وزيت زيتون", price: 3000, available: true },
+                { name: "متبل", description: "باذنجان مشوي مع طحينة وليمون", price: 3000, available: true },
+                { name: "ورق عنب", description: "محشي بالأرز واللحم المفروم", price: 4000, available: true },
+                { name: "تبولة", description: "بقدونس، برغل، طماطم، نعناع", price: 3500, available: true },
+                { name: "فلافل", description: "طعمية مقلية مع صلصة الطحينة", price: 2500, available: true },
+                { name: "سمبوسة", description: "محشية بالجبن أو اللحم", price: 3000, available: false }
+            ]
+        }, {
+            category: "أطباق رئيسية",
+            items: [
+                { name: "دجاج مشوي", description: "نصف دجاجة متبلة ومشوية على الفحم", price: 8000, available: true },
+                { name: "كباب", description: "لحم مفروم مشوي مع بهارات خاصة", price: 9000, available: true },
+                { name: "تكة", description: "مكعبات لحم مع البصل والفلفل", price: 10000, available: true },
+                { name: "قوزي", description: "خروف محشي بالأرز والمكسرات", price: 12000, available: true },
+                { name: "مسكوف", description: "سمك مشوي على الطريقة العراقية", price: 11000, available: true },
+                { name: "دجاج بالفرن", description: "دجاجة كاملة مشوية بالفرن", price: 8500, available: false }
+            ]
+        }, {
+            category: "مشاوي",
+            items: [
+                { name: "شيش طاووق", description: "صدور دجاج متبلة ومشوية", price: 7000, available: true },
+                { name: "كباب حلبي", description: "كباب مع دهن وتوابل حلبي", price: 9000, available: true },
+                { name: "أضلاع", description: "أضلاع لحم مشوية على الفحم", price: 10000, available: true },
+                { name: "كفتة", description: "لحم مفروم مع بقدونس وبصل", price: 8000, available: true },
+                { name: "مشاوي مشكلة", description: "تكة، كباب، كفتة، شيش طاووق", price: 12000, available: true },
+                { name: "صدر دجاج", description: "صدر دجاج مشوي مع خضار", price: 7500, available: false }
+            ]
+        }, {
+            category: "حلويات",
+            items: [
+                { name: "كنافة", description: "كنافة نابلسية مع جبنة وقشطة", price: 4000, available: true },
+                { name: "بقلاوة", description: "بقلاوة بالفستق الحلبي", price: 3500, available: true },
+                { name: "معمول", description: "معمول بالتمر أو الجوز", price: 3000, available: true },
+                { name: "زلابية", description: "زلابية مقلية مع شراب", price: 2500, available: true },
+                { name: "كريم كراميل", description: "كريمة كراميل ناعمة", price: 3000, available: true },
+                { name: "تشيز كيك", description: "تشيز كيك بالتوت", price: 4500, available: false }
+            ]
+        }, {
+            category: "مشروبات",
+            items: [
+                { name: "كولا", description: "مشروب غازي", price: 1500, available: true },
+                { name: "سبرايت", description: "مشروب غازي ليمون", price: 1500, available: true },
+                { name: "ماء", description: "ماء معدني", price: 1000, available: true },
+                { name: "عصير برتقال", description: "عصير برتقال طازج", price: 2000, available: true },
+                { name: "شاي", description: "شاي عراقي بالهيل", price: 1000, available: true },
+                { name: "قهوة", description: "قهوة عربية أو تركية", price: 1500, available: false }
+            ]
+        }];
+
+        // ============================================================
+        // STATE
+        // ============================================================
+        let cart = {}; // key: itemIndex (string), value: quantity
+        let currentMode = 'browse'; // 'browse' | 'dine' | 'delivery'
+        let tableNumber = null;
+
+        // ============================================================
+        // DOM REFS
+        // ============================================================
+        const statusBar = document.getElementById('statusBar');
+        const searchInput = document.getElementById('searchInput');
+        const catNav = document.getElementById('catNav');
+        const menuContainer = document.getElementById('menuContainer');
+        const cartBar = document.getElementById('cartBar');
+        const cartCount = document.getElementById('cartCount');
+        const cartTotal = document.getElementById('cartTotal');
+        const cartModal = document.getElementById('cartModal');
+        const cartItemsList = document.getElementById('cartItemsList');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const delFields = document.getElementById('deliveryFields');
+        const delName = document.getElementById('delName');
+        const delAddress = document.getElementById('delAddress');
+        const delPhone = document.getElementById('delPhone');
+        const delNameError = document.getElementById('delNameError');
+        const delAddressError = document.getElementById('delAddressError');
+        const delPhoneError = document.getElementById('delPhoneError');
+
+        // ============================================================
+        // UTILITY
+        // ============================================================
+        function formatPrice(p) {
+            return p.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' د.ع';
+        }
+
+        function getItemKey(catIdx, itemIdx) {
+            return catIdx + '-' + itemIdx;
+        }
+
+        function getItemByKey(key) {
+            const parts = key.split('-');
+            const ci = parseInt(parts[0]),
+                ii = parseInt(parts[1]);
+            if (isNaN(ci) || isNaN(ii)) return null;
+            const cat = MENU_DATA[ci];
+            if (!cat) return null;
+            const item = cat.items[ii];
+            if (!item) return null;
+            return { category: cat.category, item, catIdx: ci, itemIdx: ii };
+        }
+
+        function getCartTotal() {
+            let total = 0;
+            let count = 0;
+            for (const key in cart) {
+                const qty = cart[key];
+                if (qty <= 0) continue;
+                const info = getItemByKey(key);
+                if (info && info.item.available) {
+                    total += info.item.price * qty;
+                    count += qty;
+                }
+            }
+            return { total, count };
+        }
+
+        // ============================================================
+        // URL PARAMETER PARSING
+        // ============================================================
+        function parseMode() {
+            const params = new URLSearchParams(window.location.search);
+            const t = params.get('t');
+            const d = params.get('d');
+
+            // delivery mode
+            if (d === '1') {
+                currentMode = 'delivery';
+                tableNumber = null;
+                return;
+            }
+
+            // dine-in mode
+            if (t !== null) {
+                const num = parseInt(t, 10);
+                if (!isNaN(num) && Number.isInteger(num) && num > 0 && num <= MAX_TABLES) {
+                    currentMode = 'dine';
+                    tableNumber = num;
+                    return;
+                }
+                // invalid t → browse mode (no error)
+            }
+
+            // no params or invalid → browse
+            currentMode = 'browse';
+            tableNumber = null;
+        }
+
+        // ============================================================
+        // RENDER STATUS BAR
+        // ============================================================
+        function renderStatus() {
+            let msg = '';
+            let badge = '';
+            if (currentMode === 'dine') {
+                msg = `🍽️ طاولة رقم ${tableNumber}`;
+                badge = 'طلب صالة';
+            } else if (currentMode === 'delivery') {
+                msg = '🚚 توصيل إلى المنزل';
+                badge = 'طلب توصيل';
+            } else {
+                msg = '👀 تصفح القائمة';
+                badge = 'تصفح';
+            }
+            statusBar.innerHTML = `${msg} <span class="badge">${badge}</span>`;
+        }
+
+        // ============================================================
+        // RENDER MENU
+        // ============================================================
+        function renderMenu(filter = '') {
+            let html = '';
+            const filterLower = filter.trim().toLowerCase();
+
+            MENU_DATA.forEach((cat, ci) => {
+                // check if any item in this category matches the filter
+                let hasMatch = false;
+                const itemsHtml = [];
+                cat.items.forEach((item, ii) => {
+                    const match = filterLower === '' ||
+                        item.name.includes(filterLower) ||
+                        item.description.includes(filterLower);
+                    if (match) hasMatch = true;
+                    const key = getItemKey(ci, ii);
+                    const qty = cart[key] || 0;
+                    const isAvail = item.available;
+                    const cls = isAvail ? '' : 'unavailable';
+                    const statusLabel = isAvail ? '' :
+                        '<span class="statusLabel unavailable">⚠️ غير متوفر</span>';
+
+                    let actions = '';
+                    if (isAvail) {
+                        if (qty === 0) {
+                            actions = `<button class="btn btn-add" data-key="${key}">➕ أضف</button>`;
+                        } else {
+                            actions = `
+                        <div class="qtyGroup">
+                          <button class="btn btn-qty" data-key="${key}" data-delta="-1">−</button>
+                          <span class="qtyNum">${qty}</span>
+                          <button class="btn btn-qty" data-key="${key}" data-delta="1">+</button>
+                        </div>
+                      `;
+                        }
+                    } else {
+                        actions = `<span class="statusLabel unavailable">غير متوفر</span>`;
+                    }
+
+                    itemsHtml.push(`
+                  <div class="item ${cls}" data-cat="${ci}" data-item="${ii}">
+                    <div class="topRow">
+                      <span class="name">${item.name}</span>
+                      <span class="price">${formatPrice(item.price)}</span>
+                    </div>
+                    <div class="desc">${item.description}</div>
+                    <div class="bottomRow">
+                      ${statusLabel}
+                      <div>${actions}</div>
+                    </div>
+                  </div>
+                `);
+                });
+
+                if (!hasMatch && filterLower !== '') return;
+
+                html += `<div class="section" data-cat="${ci}">
+                  <div class="sectionTitle">${cat.category}</div>
+                  ${itemsHtml.join('')}
+                </div>`;
+            });
+
+            if (html === '') {
+                html = `<div style="padding:40px 20px;text-align:center;color:#999;font-size:16px;">لا توجد أصناف تطابق البحث</div>`;
+            }
+            menuContainer.innerHTML = html;
+            updateCartUI();
+            attachItemEvents();
+        }
+
+        // ============================================================
+        // CATEGORY NAV
+        // ============================================================
+        function renderCatNav() {
+            let html = '';
+            MENU_DATA.forEach((cat, i) => {
+                html += `<button class="catBtn" data-cat="${i}">${cat.category}</button>`;
+            });
+            catNav.innerHTML = html;
+            // first active
+            const btns = catNav.querySelectorAll('.catBtn');
+            if (btns.length) btns[0].classList.add('active');
+
+            // scroll to category on click
+            btns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    btns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    const ci = parseInt(this.dataset.cat);
+                    const target = document.querySelector(`.section[data-cat="${ci}"]`);
+                    if (target) {
+                        const offset = 120;
+                        const top = target.getBoundingClientRect().top + window.pageYOffset - offset;
+                        window.scrollTo({ top, behavior: 'smooth' });
+                    }
+                });
+            });
+
+            // highlight active category on scroll (simple: use intersection observer)
+            if ('IntersectionObserver' in window) {
+                const sections = document.querySelectorAll('.section');
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const ci = entry.target.dataset.cat;
+                            const btns = catNav.querySelectorAll('.catBtn');
+                            btns.forEach(b => {
+                                b.classList.toggle('active', parseInt(b.dataset.cat) === parseInt(ci));
+                            });
+                        }
+                    });
+                }, { rootMargin: '-100px 0px -200px 0px', threshold: 0 });
+                sections.forEach(s => observer.observe(s));
+            }
+        }
+
+        // ============================================================
+        // ATTACH ITEM EVENTS (delegated)
+        // ============================================================
+        function attachItemEvents() {
+            // Add button
+            document.querySelectorAll('.btn-add').forEach(btn => {
+                btn.removeEventListener('click', handleAdd);
+                btn.addEventListener('click', handleAdd);
+            });
+            // Qty buttons
+            document.querySelectorAll('.btn-qty').forEach(btn => {
+                btn.removeEventListener('click', handleQty);
+                btn.addEventListener('click', handleQty);
+            });
+        }
+
+        function handleAdd(e) {
+            const key = e.currentTarget.dataset.key;
+            if (!key) return;
+            const info = getItemByKey(key);
+            if (!info || !info.item.available) return;
+            if (!cart[key]) cart[key] = 0;
+            cart[key] += 1;
+            updateAll();
+        }
+
+        function handleQty(e) {
+            const key = e.currentTarget.dataset.key;
+            const delta = parseInt(e.currentTarget.dataset.delta);
+            if (!key || isNaN(delta)) return;
+            const info = getItemByKey(key);
+            if (!info || !info.item.available) return;
+            if (!cart[key]) cart[key] = 0;
+            const newVal = cart[key] + delta;
+            if (newVal <= 0) {
+                delete cart[key];
+            } else {
+                cart[key] = newVal;
+            }
+            updateAll();
+        }
+
+        // ============================================================
+        // UPDATE CART UI
+        // ============================================================
+        function updateCartUI() {
+            const { total, count } = getCartTotal();
+            const visible = count > 0;
+            cartBar.classList.toggle('visible', visible);
+            cartCount.textContent = count;
+            cartTotal.textContent = formatPrice(total);
+
+            // also update any qty displays in the menu
+            document.querySelectorAll('.item .qtyNum').forEach(el => {
+                const itemEl = el.closest('.item');
+                if (!itemEl) return;
+                const ci = parseInt(itemEl.dataset.cat);
+                const ii = parseInt(itemEl.dataset.item);
+                if (isNaN(ci) || isNaN(ii)) return;
+                const key = getItemKey(ci, ii);
+                const qty = cart[key] || 0;
+                el.textContent = qty;
+            });
+
+            // update add buttons to qty groups if needed
+            document.querySelectorAll('.item').forEach(itemEl => {
+                const ci = parseInt(itemEl.dataset.cat);
+                const ii = parseInt(itemEl.dataset.item);
+                if (isNaN(ci) || isNaN(ii)) return;
+                const key = getItemKey(ci, ii);
+                const qty = cart[key] || 0;
+                const bottom = itemEl.querySelector('.bottomRow');
+                if (!bottom) return;
+                const actionsDiv = bottom.querySelector('div:last-child');
+                if (!actionsDiv) return;
+                const info = getItemByKey(key);
+                if (!info || !info.item.available) return;
+                if (qty === 0) {
+                    actionsDiv.innerHTML = `<button class="btn btn-add" data-key="${key}">➕ أضف</button>`;
+                } else {
+                    actionsDiv.innerHTML = `
+                <div class="qtyGroup">
+                  <button class="btn btn-qty" data-key="${key}" data-delta="-1">−</button>
+                  <span class="qtyNum">${qty}</span>
+                  <button class="btn btn-qty" data-key="${key}" data-delta="1">+</button>
+                </div>
+              `;
+                }
+            });
+            // re-bind events for new buttons
+            attachItemEvents();
+        }
+
+        function updateAll() {
+            renderMenu(searchInput.value);
+            updateCartUI();
+            renderCartModal();
+            updateSendButton();
+        }
+
+        // ============================================================
+        // CART MODAL
+        // ============================================================
+        function renderCartModal() {
+            const { total, count } = getCartTotal();
+            if (count === 0) {
+                cartItemsList.innerHTML = `<div class="emptyCartMsg">🛒 السلة فارغة</div>`;
+                sendBtn.disabled = true;
+                return;
+            }
+
+            let html = '';
+            for (const key in cart) {
+                const qty = cart[key];
+                if (qty <= 0) continue;
+                const info = getItemByKey(key);
+                if (!info || !info.item.available) continue;
+                const sub = info.item.price * qty;
+                html += `
+              <div class="cartItem" data-key="${key}">
+                <span class="ciName">${info.item.name}</span>
+                <span class="ciPrice">${formatPrice(sub)}</span>
+                <div class="ciQty">
+                  <button class="btn-sm" data-key="${key}" data-delta="-1">−</button>
+                  <span class="qtyNum">${qty}</span>
+                  <button class="btn-sm" data-key="${key}" data-delta="1">+</button>
+                  <button class="ciRemove" data-key="${key}">✕</button>
+                </div>
+              </div>
+            `;
+            }
+            cartItemsList.innerHTML = html;
+
+            // bind modal events
+            cartItemsList.querySelectorAll('.btn-sm').forEach(btn => {
+                btn.removeEventListener('click', handleModalQty);
+                btn.addEventListener('click', handleModalQty);
+            });
+            cartItemsList.querySelectorAll('.ciRemove').forEach(btn => {
+                btn.removeEventListener('click', handleModalRemove);
+                btn.addEventListener('click', handleModalRemove);
+            });
+
+            // show/hide delivery fields
+            if (currentMode === 'delivery') {
+                delFields.style.display = 'block';
+            } else {
+                delFields.style.display = 'none';
+            }
+
+            // update send button
+            updateSendButton();
+        }
+
+        function handleModalQty(e) {
+            const key = e.currentTarget.dataset.key;
+            const delta = parseInt(e.currentTarget.dataset.delta);
+            if (!key || isNaN(delta)) return;
+            const info = getItemByKey(key);
+            if (!info || !info.item.available) return;
+            if (!cart[key]) cart[key] = 0;
+            const newVal = cart[key] + delta;
+            if (newVal <= 0) {
+                delete cart[key];
+            } else {
+                cart[key] = newVal;
+            }
+            updateAll();
+        }
+
+        function handleModalRemove(e) {
+            const key = e.currentTarget.dataset.key;
+            if (!key) return;
+            delete cart[key];
+            updateAll();
+        }
+
+        // ============================================================
+        // SEND BUTTON STATE
+        // ============================================================
+        function updateSendButton() {
+            const { count } = getCartTotal();
+            if (currentMode === 'browse') {
+                sendBtn.textContent = '📢 القائمة في وضع التصفح — لا يمكن الإرسال';
+                sendBtn.disabled = true;
+                sendBtn.classList.add('browseMode');
+                return;
+            }
+            sendBtn.classList.remove('browseMode');
+
+            if (count === 0) {
+                sendBtn.textContent = '🛒 السلة فارغة';
+                sendBtn.disabled = true;
+                return;
+            }
+
+            if (currentMode === 'delivery') {
+                const nameOk = delName.value.trim().length > 0;
+                const addrOk = delAddress.value.trim().length > 0;
+                const phoneOk = delPhone.value.trim().length > 0;
+                if (!nameOk || !addrOk || !phoneOk) {
+                    sendBtn.textContent = '📝 املأ جميع حقول التوصيل';
+                    sendBtn.disabled = true;
+                    return;
+                }
+            }
+
+            sendBtn.textContent = '📤 إرسال الطلب عبر واتساب';
+            sendBtn.disabled = false;
+        }
+
+        // ============================================================
+        // DELIVERY FIELDS VALIDATION
+        // ============================================================
+        function validateDelivery() {
+            let ok = true;
+            const name = delName.value.trim();
+            const addr = delAddress.value.trim();
+            const phone = delPhone.value.trim();
+
+            delNameError.classList.toggle('visible', name === '');
+            delAddressError.classList.toggle('visible', addr === '');
+            delPhoneError.classList.toggle('visible', phone === '');
+
+            if (name === '') ok = false;
+            if (addr === '') ok = false;
+            if (phone === '') ok = false;
+
+            return ok;
+        }
+
+        delName.addEventListener('input', () => { validateDelivery();
+            updateSendButton(); });
+        delAddress.addEventListener('input', () => { validateDelivery();
+            updateSendButton(); });
+        delPhone.addEventListener('input', () => { validateDelivery();
+            updateSendButton(); });
+
+        // ============================================================
+        // SEND WHATSAPP
+        // ============================================================
+        function sendWhatsApp() {
+            const { total, count } = getCartCount();
+            if (count === 0) return;
+
+            if (currentMode === 'delivery') {
+                if (!validateDelivery()) {
+                    updateSendButton();
+                    return;
+                }
+            }
+
+            let msg = '';
+            if (currentMode === 'dine') {
+                msg += `🍽️ طلب طاولة رقم ${tableNumber}\n`;
+            } else if (currentMode === 'delivery') {
+                msg += `🚚 طلب توصيل\n`;
+            } else {
+                return; // should not happen
+            }
+
+            msg += `━━━━━━━━━━━━━━━━\n`;
+            let subtotal = 0;
+            for (const key in cart) {
+                const qty = cart[key];
+                if (qty <= 0) continue;
+                const info = getItemByKey(key);
+                if (!info || !info.item.available) continue;
+                const linePrice = info.item.price * qty;
+                subtotal += linePrice;
+                msg += `• ${info.item.name} × ${qty}  =  ${formatPrice(linePrice)}\n`;
+            }
+            msg += `━━━━━━━━━━━━━━━━\n`;
+            msg += `💰 المجموع الكلي: ${formatPrice(subtotal)}\n`;
+
+            if (currentMode === 'delivery') {
+                msg += `\n👤 الاسم: ${delName.value.trim()}\n`;
+                msg += `📍 العنوان: ${delAddress.value.trim()}\n`;
+                msg += `📞 الهاتف: ${delPhone.value.trim()}\n`;
+            }
+
+            msg += `\n📋 ${SHOP_NAME}`;
+
+            const url = `https://wa.me/${PHONE}?text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank');
+        }
+
+        function getCartCount() {
+            let total = 0,
+                count = 0;
+            for (const key in cart) {
+                const qty = cart[key];
+                if (qty <= 0) continue;
+                const info = getItemByKey(key);
+                if (info && info.item.available) {
+                    total += info.item.price * qty;
+                    count += qty;
+                }
+            }
+            return { total, count };
+        }
+
+        // ============================================================
+        // MODAL OPEN / CLOSE
+        // ============================================================
+        cartBar.addEventListener('click', function() {
+            if (this.classList.contains('visible')) {
+                renderCartModal();
+                cartModal.classList.add('open');
+                // if delivery, update validation
+                if (currentMode === 'delivery') {
+                    validateDelivery();
+                    updateSendButton();
+                }
+            }
+        });
+
+        closeModalBtn.addEventListener('click', function() {
+            cartModal.classList.remove('open');
+        });
+
+        cartModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('open');
+            }
+        });
+
+        sendBtn.addEventListener('click', sendWhatsApp);
+
+        // ============================================================
+        // SEARCH
+        // ============================================================
+        searchInput.addEventListener('input', function() {
+            renderMenu(this.value);
+            // re-highlight cat nav
+            const btns = catNav.querySelectorAll('.catBtn');
+            if (btns.length) {
+                // find first visible section
+                const sections = document.querySelectorAll('.section');
+                let found = false;
+                sections.forEach((sec, idx) => {
+                    if (!found && sec.style.display !== 'none') {
+                        btns.forEach(b => b.classList.toggle('active', parseInt(b.dataset.cat) === idx));
+                        found = true;
+                    }
+                });
+                if (!found && btns.length) btns[0].classList.add('active');
+            }
+        });
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        function init() {
+            parseMode();
+            renderStatus();
+            renderCatNav();
+            renderMenu('');
+            updateAll();
+
+            // show delivery fields if delivery mode
+            if (currentMode === 'delivery') {
+                delFields.style.display = 'block';
+            } else {
+                delFields.style.display = 'none';
+            }
+
+            // If browse mode, hide send button in modal? Actually we disable it.
+            if (currentMode === 'browse') {
+                sendBtn.textContent = '📢 تصفح فقط — لا يمكن الإرسال';
+                sendBtn.disabled = true;
+                sendBtn.classList.add('browseMode');
+            }
+
+            // Extra: if no params, show hint in status
+            if (currentMode === 'browse') {
+                // already handled
+            }
+        }
+
+        // Re-run on URL change (if using history)
+        window.addEventListener('popstate', function() {
+            parseMode();
+            renderStatus();
+            updateAll();
+            if (currentMode === 'delivery') {
+                delFields.style.display = 'block';
+            } else {
+                delFields.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', init);
+
+        // ============================================================
+        // EDGE CASES (6) for index.html – documented below
+        // ============================================================
+        // 1. No URL parameters → browse mode, send button disabled with hint.
+        // 2. ?t=valid (1..MAX_TABLES) → dine-in mode, shows table number.
+        // 3. ?t=invalid (0, negative, >MAX_TABLES, non-number) → browse mode (no error).
+        // 4. ?d=1 → delivery mode, shows name/address/phone fields, validation required.
+        // 5. Cart empty → bottom bar hidden, send button disabled.
+        // 6. Unavailable item → greyed out, "غير متوفر", no add button.
+        // ============================================================
+        // PHONE is defined at line ~200 (const PHONE = "9647701234567")
+        // It is used ONLY in the WhatsApp URL construction (line ~562)
+        // No other occurrence of the number appears in the file.
+        // ============================================================
+    </script>
+</body>
+</html>
